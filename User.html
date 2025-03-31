@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trang chủ người dùng</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header-bar {
+            background-color: #fff;
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-bar h2 {
+            margin: 0;
+            color: #333;
+            font-size: 20px;
+        }
+
+        .header-buttons button {
+            padding: 10px 20px;
+            margin-left: 10px;
+            font-size: 14px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .header-buttons .profile {
+            background-color: #2196F3;
+            color: #fff;
+        }
+
+        .header-buttons .profile:hover {
+            background-color: #1976D2;
+        }
+
+        .header-buttons .logout {
+            background-color: #e53935;
+            color: #fff;
+        }
+
+        .header-buttons .logout:hover {
+            background-color: #c62828;
+        }
+
+        .container {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h3 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+        .book-list, .fine-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .book-item, .fine-item {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .book-item.expired {
+            background-color: #ffebee;
+        }
+
+        .book-item h4, .fine-item h4 {
+            margin: 0;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .book-item p, .fine-item p {
+            margin: 5px 0 0;
+            color: #777;
+            font-size: 14px;
+        }
+
+        .book-item.expired p {
+            color: #d32f2f;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header-bar">
+        <h2>Chào mừng, <span id="userName">Người dùng</span></h2>
+        <div class="header-buttons">
+            <button class="profile" onclick="window.location.href='user-profile.html'">Thông tin cá nhân</button>
+            <button class="logout" onclick="logout()">Đăng xuất</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <h3>Sách đang mượn</h3>
+        <div class="book-list" id="bookList">
+            <!-- Danh sách sách sẽ được thêm bằng JavaScript -->
+        </div>
+
+        <h3>Danh sách biên lai phạt</h3>
+        <div class="fine-list" id="fineList">
+            <!-- Danh sách biên lai sẽ được thêm bằng JavaScript -->
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        let readerId = null; // Sẽ lấy từ API hoặc cấu hình sau
+
+        // Lấy thông tin người dùng
+        async function fetchUserInfo() {
+            try {
+                if (!token) {
+                    throw new Error('Không tìm thấy token. Vui lòng đăng nhập lại.');
+                }
+
+                const response = await fetch('http://localhost:8081/reader/user', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Không thể lấy thông tin người dùng: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('Dữ liệu người dùng:', data);
+                if (data.code === 1000) {
+                    document.getElementById('userName').innerText = data.result.name || 'Người dùng';
+                    readerId = data.result.id; // Giả định backend trả thêm id, nếu không thì cần API khác
+                    fetchBooks();
+                    fetchFines();
+                } else {
+                    throw new Error('Mã phản hồi không hợp lệ: ' + data.code);
+                }
+            } catch (error) {
+                console.error('Lỗi khi lấy thông tin người dùng:', error.message);
+                document.getElementById('userName').innerText = 'Người dùng (Lỗi tải dữ liệu)';
+            }
+        }
+
+        // Lấy danh sách sách mượn
+        async function fetchBooks() {
+            try {
+                if (!readerId) {
+                    throw new Error('Không xác định được ID độc giả.');
+                }
+
+                const response = await fetch(`http://localhost:8081/book/${readerId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Không thể lấy danh sách sách mượn: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('Dữ liệu sách mượn:', data);
+                if (data.code === 1000) {
+                    displayBooks(data.result);
+                } else {
+                    throw new Error('Mã phản hồi không hợp lệ: ' + data.code);
+                }
+            } catch (error) {
+                console.error('Lỗi khi lấy danh sách sách mượn:', error.message);
+                document.getElementById('bookList').innerHTML = `<p>${error.message}</p>`;
+            }
+        }
+
+        function displayBooks(books) {
+            const bookList = document.getElementById('bookList');
+            if (!books || books.length === 0) {
+                bookList.innerHTML = '<p>Bạn chưa mượn sách nào.</p>';
+                return;
+            }
+
+            bookList.innerHTML = '';
+            books.forEach(book => {
+                const borrowDate = new Date(book.borrowDate).toLocaleDateString('vi-VN');
+                const expiryDate = book.expiryDate ? new Date(book.expiryDate) : null;
+                const currentDate = new Date(); // Thời gian hiện tại thực tế
+                const isExpired = expiryDate && expiryDate < currentDate;
+
+                const bookItem = document.createElement('div');
+                bookItem.className = `book-item ${isExpired ? 'expired' : ''}`;
+                bookItem.innerHTML = `
+                    <div>
+                        <h4>Thông tin mượn sách</h4>
+                        <p>Ngày mượn: ${borrowDate} | Số sách: ${book.countBooks || 'Chưa xác định'} | Trạng thái: ${book.status || 'Chưa xác định'}</p>
+                        <p>Ngày hết hạn: ${expiryDate ? expiryDate.toLocaleDateString('vi-VN') : 'Chưa xác định'} ${isExpired ? '(Đã hết hạn)' : ''}</p>
+                    </div>
+                `;
+                bookList.appendChild(bookItem);
+            });
+        }
+
+        // Lấy danh sách biên lai phạt
+        async function fetchFines() {
+            try {
+                if (!readerId) {
+                    throw new Error('Không xác định được ID độc giả.');
+                }
+
+                const response = await fetch(`http://localhost:8081/User/${readerId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Không thể lấy danh sách biên lai phạt: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('Dữ liệu biên lai phạt:', data);
+                if (data.code === 1000) {
+                    displayFines(data.result);
+                } else {
+                    throw new Error('Mã phản hồi không hợp lệ: ' + data.code);
+                }
+            } catch (error) {
+                console.error('Lỗi khi lấy danh sách biên lai:', error.message);
+                document.getElementById('fineList').innerHTML = `<p>${error.message}</p>`;
+            }
+        }
+
+        function displayFines(fines) {
+            const fineList = document.getElementById('fineList');
+            if (!fines || fines.length === 0) {
+                fineList.innerHTML = '<p>Chưa có biên lai phạt nào.</p>';
+                return;
+            }
+
+            fineList.innerHTML = '';
+            fines.forEach((fine, index) => {
+                const fineItem = document.createElement('div');
+                fineItem.className = 'fine-item';
+                fineItem.innerHTML = `
+                    <div>
+                        <h4>Biên lai phạt #${index + 1}</h4>
+                        <p>Số tiền phạt: ${fine.amount !== null ? fine.amount + ' VNĐ' : 'Chưa xác định'} | Trạng thái: ${fine.status || 'Chưa xác định'}</p>
+                        <p>Ghi chú: ${fine.note || 'Không có'}</p>
+                    </div>
+                `;
+                fineList.appendChild(fineItem);
+            });
+        }
+
+        // Đăng xuất
+        async function logout() {
+            if (!confirm('Bạn có chắc chắn muốn đăng xuất?')) return;
+
+            try {
+                const response = await fetch('http://localhost:8081/auth/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Đăng xuất thất bại');
+                }
+
+                localStorage.removeItem('token');
+                alert('Đã đăng xuất!');
+                window.location.href = 'login.html';
+            } catch (error) {
+                console.error('Lỗi khi đăng xuất:', error.message);
+                alert('Có lỗi xảy ra khi đăng xuất!');
+                localStorage.removeItem('token');
+                window.location.href = 'login.html';
+            }
+        }
+
+        // Tải dữ liệu khi mở trang
+        window.onload = fetchUserInfo;
+    </script>
+</body>
+
+</html>

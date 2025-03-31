@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .login-container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 350px;
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 25px;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            outline: none;
+            background-color: #fafafa;
+            box-sizing: border-box;
+        }
+
+        input:focus {
+            border-color: #4CAF50;
+            background-color: #fff;
+        }
+
+        input::placeholder {
+            color: #999;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #4CAF50;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        p#message {
+            text-align: center;
+            margin-top: 15px;
+            color: #e53935;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-container">
+        <h2>Đăng nhập</h2>
+        <input type="text" id="username" placeholder="Tên đăng nhập">
+        <input type="password" id="password" placeholder="Mật khẩu">
+        <button onclick="login()">Đăng nhập</button>
+        <p id="message"></p>
+    </div>
+
+    <script>
+        // Hàm giải mã JWT (chỉ phần payload, không cần thư viện)
+        function parseJwt(token) {
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                return JSON.parse(jsonPayload);
+            } catch (e) {
+                console.error('Lỗi giải mã JWT:', e);
+                return null;
+            }
+        }
+
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const message = document.getElementById('message');
+
+            if (!username || !password) {
+                message.innerText = 'Vui lòng điền đầy đủ thông tin!';
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:8081/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const result = await response.json();
+                if (response.ok && result.code === 1000 && result.result.success) {
+                    const token = result.result.token;
+                    localStorage.setItem('token', token); // Lưu token
+
+                    // Giải mã token để lấy SCOPE
+                    const payload = parseJwt(token);
+                    if (!payload || !payload.SCOPE) {
+                        message.innerText = 'Không tìm thấy thông tin vai trò!';
+                        return;
+                    }
+
+                    const scope = payload.SCOPE;
+                    message.style.color = '#4CAF50';
+                    message.innerText = 'Đăng nhập thành công!';
+                    setTimeout(() => {
+                        if (scope === 'SCOPE_ADMIN') {
+                            window.location.href = 'dashboard.html'; // Trang admin
+                        } else if (scope === 'SCOPE_USER') {
+                            window.location.href = 'user.html'; // Trang user
+                        } else {
+                            message.style.color = '#e53935';
+                            message.innerText = 'Vai trò không hợp lệ!';
+                        }
+                    }, 1500);
+                } else {
+                    message.innerText = result.message || 'Sai tài khoản hoặc mật khẩu!';
+                }
+            } catch (error) {
+                message.innerText = 'Có lỗi xảy ra, vui lòng thử lại!';
+                console.error('Lỗi đăng nhập:', error);
+            }
+        }
+    </script>
+</body>
+
+</html>

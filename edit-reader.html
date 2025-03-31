@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cập nhật thông tin độc giả</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            color: #333;
+            margin-top: 0;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            height: 80px;
+            resize: vertical;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            border-color: #4CAF50;
+            outline: none;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 14px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .save-btn {
+            background-color: #4CAF50;
+            color: #fff;
+        }
+
+        .save-btn:hover {
+            background-color: #45a049;
+        }
+
+        .delete-btn {
+            background-color: #e53935;
+            color: #fff;
+        }
+
+        .delete-btn:hover {
+            background-color: #c62828;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #2196F3;
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        #message {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2>Cập nhật thông tin độc giả</h2>
+        <div class="form-group">
+            <label for="editName">Họ và tên</label>
+            <input type="text" id="editName" placeholder="Họ và tên">
+        </div>
+        <div class="form-group">
+            <label for="editPhone">Số điện thoại</label>
+            <input type="text" id="editPhone" placeholder="Số điện thoại">
+        </div>
+        <div class="form-group">
+            <label for="editAddress">Địa chỉ</label>
+            <input type="text" id="editAddress" placeholder="Địa chỉ">
+        </div>
+        <div class="form-group">
+            <label for="editEmail">Email</label>
+            <input type="email" id="editEmail" placeholder="Email">
+        </div>
+        <div class="form-group">
+            <label for="editUsername">Tên đăng nhập</label>
+            <input type="text" id="editUsername" placeholder="Tên đăng nhập">
+        </div>
+        <div class="form-group">
+            <label for="editPassword">Mật khẩu</label>
+            <input type="password" id="editPassword" placeholder="Mật khẩu">
+        </div>
+        <div class="form-group">
+            <label for="editNote">Ghi chú</label>
+            <textarea id="editNote" placeholder="Ghi chú (nếu có)"></textarea>
+        </div>
+        <div class="buttons">
+            <button class="save-btn" onclick="saveReader()">Lưu thay đổi</button>
+            <button class="delete-btn" onclick="deleteReader()">Xóa độc giả</button>
+        </div>
+        <a href="home.html" class="back-link">Quay lại danh sách độc giả</a>
+        <p id="message"></p>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const readerId = urlParams.get('id');
+        const token = localStorage.getItem('token');
+
+        async function fetchReaderInfo() {
+            try {
+                if (!token) {
+                    throw new Error('Không tìm thấy token. Vui lòng đăng nhập lại.');
+                }
+                if (!readerId) {
+                    throw new Error('Không tìm thấy ID độc giả.');
+                }
+
+                const response = await fetch('http://localhost:8081/reader', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Không thể lấy thông tin độc giả: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('Dữ liệu từ API:', data); // Debug
+                if (data.code === 1000) {
+                    const reader = data.result.find(r => r.id == readerId);
+                    if (reader) {
+                        document.getElementById('editName').value = reader.name || '';
+                        document.getElementById('editPhone').value = reader.phone || '';
+                        document.getElementById('editAddress').value = reader.address || '';
+                        document.getElementById('editEmail').value = reader.email || '';
+                        document.getElementById('editUsername').value = reader.username || '';
+                        document.getElementById('editPassword').value = reader.password || '';
+                        document.getElementById('editNote').value = reader.note || '';
+                    } else {
+                        throw new Error('Không tìm thấy độc giả với ID: ' + readerId);
+                    }
+                } else {
+                    throw new Error('Mã phản hồi không hợp lệ: ' + data.code);
+                }
+            } catch (error) {
+                console.error('Lỗi khi lấy thông tin độc giả:', error.message);
+                document.getElementById('message').innerText = error.message;
+                document.getElementById('message').style.color = '#e53935';
+            }
+        }
+
+        async function saveReader() {
+            const name = document.getElementById('editName').value;
+            const phone = document.getElementById('editPhone').value;
+            const address = document.getElementById('editAddress').value;
+            const email = document.getElementById('editEmail').value;
+            const username = document.getElementById('editUsername').value;
+            const password = document.getElementById('editPassword').value;
+            const note = document.getElementById('editNote').value;
+            const message = document.getElementById('message');
+
+            // Kiểm tra các trường bắt buộc
+            if (!name || !phone || !address) {
+                message.innerText = 'Vui lòng điền đầy đủ các trường bắt buộc (Họ tên, SĐT, Địa chỉ)!';
+                message.style.color = '#e53935';
+                return;
+            }
+
+            const updatedReader = {
+                name,
+                phone,
+                address,
+                email: email || null,
+                username: username || null,
+                password: password || null,
+                note: note || null
+            };
+
+            try {
+                const response = await fetch(`http://localhost:8081/reader/${readerId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updatedReader)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Không thể cập nhật độc giả: ${response.status}`);
+                }
+
+                message.innerText = 'Cập nhật thành công!';
+                message.style.color = '#4CAF50';
+                setTimeout(() => window.location.href = 'home.html', 1500);
+            } catch (error) {
+                console.error('Lỗi khi cập nhật độc giả:', error.message);
+                message.innerText = error.message;
+                message.style.color = '#e53935';
+            }
+        }
+
+        async function deleteReader() {
+            if (!confirm('Bạn có chắc chắn muốn xóa độc giả này?')) return;
+
+            try {
+                const response = await fetch(`http://localhost:8081/reader/delete/${readerId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Không thể xóa độc giả: ${response.status}`);
+                }
+
+                document.getElementById('message').innerText = 'Xóa độc giả thành công!';
+                document.getElementById('message').style.color = '#4CAF50';
+                setTimeout(() => window.location.href = 'home.html', 1500);
+            } catch (error) {
+                console.error('Lỗi khi xóa độc giả:', error.message);
+                document.getElementById('message').innerText = error.message;
+                document.getElementById('message').style.color = '#e53935';
+            }
+        }
+
+        window.onload = fetchReaderInfo;
+    </script>
+</body>
+
+</html>
