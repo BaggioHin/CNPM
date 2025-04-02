@@ -116,18 +116,43 @@
         const token = localStorage.getItem('token');
 
         async function addReader() {
-            const name = document.getElementById('name').value;
-            const phone = document.getElementById('phone').value;
-            const address = document.getElementById('address').value;
-            const email = document.getElementById('email').value;
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            const note = document.getElementById('note').value;
+            const name = document.getElementById('name').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const address = document.getElementById('address').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const note = document.getElementById('note').value.trim();
             const message = document.getElementById('message');
 
             // Kiểm tra các trường bắt buộc
-            if (!name || !phone || !email || !username || !password) {
+            if (!name || !phone || !address || !email || !username || !password) {
                 message.innerText = 'Vui lòng điền đầy đủ các trường bắt buộc!';
+                return;
+            }
+
+            // Kiểm tra định dạng email
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                message.innerText = 'Email không đúng định dạng!';
+                return;
+            }
+
+            // Kiểm tra tên đăng nhập (ít nhất 6 ký tự)
+            if (username.length < 6) {
+                message.innerText = 'Tên đăng nhập phải dài ít nhất 6 ký tự!';
+                return;
+            }
+
+            // Kiểm tra mật khẩu (ít nhất 8 ký tự)
+            if (password.length < 8) {
+                message.innerText = 'Mật khẩu phải dài ít nhất 8 ký tự!';
+                return;
+            }
+
+            // Kiểm tra địa chỉ (ít nhất 5 ký tự)
+            if (address.length < 5) {
+                message.innerText = 'Địa chỉ phải có ít nhất 5 ký tự!';
                 return;
             }
 

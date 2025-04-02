@@ -298,36 +298,16 @@
             }
         }
 
-        async function logout() {
-            try {
-                if (!token) {
-                    localStorage.removeItem('token');
-                    alert('Không tìm thấy token. Chuyển về trang đăng nhập.');
-                    window.location.href = 'login.html';
-                    return;
-                }
+        // Đăng xuất (Không gọi API)
+        function logout() {
+            if (!confirm('Bạn có chắc chắn muốn đăng xuất?')) return;
 
-                const response = await fetch('http://localhost:8081/auth/logout', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
+            // Xóa token khỏi localStorage
+            localStorage.removeItem('token');
+            localStorage.removeItem('refreshToken');
 
-                if (!response.ok) {
-                    throw new Error('Đăng xuất thất bại: ' + response.status);
-                }
-
-                localStorage.removeItem('token');
-                alert('Đã đăng xuất!');
-                window.location.href = 'login.html';
-            } catch (error) {
-                console.error('Lỗi khi đăng xuất:', error.message);
-                alert('Có lỗi xảy ra khi đăng xuất!');
-                localStorage.removeItem('token');
-                window.location.href = 'login.html';
-            }
+            alert('Đã đăng xuất thành công!');
+            window.location.href = 'login.html';
         }
 
         window.onload = fetchReaders;

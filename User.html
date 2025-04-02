@@ -89,7 +89,15 @@
         }
 
         .book-item.expired {
-            background-color: #ffebee;
+            background-color: #ffebee; /* Màu cho EXPIRED */
+        }
+
+        .book-item.unpaid {
+            background-color: #ffebee; /* Màu cho UNPAID */
+        }
+
+        .book-item.paid {
+            background-color: #fff; /* Màu cho PAID */
         }
 
         .book-item h4, .fine-item h4 {
@@ -104,8 +112,8 @@
             font-size: 14px;
         }
 
-        .book-item.expired p {
-            color: #d32f2f;
+        .book-item.expired p, .book-item.unpaid p {
+            color: #d32f2f; /* Màu chữ cho EXPIRED và UNPAID */
         }
     </style>
 </head>
@@ -213,14 +221,20 @@
             books.forEach(book => {
                 const borrowDate = new Date(book.borrowDate).toLocaleDateString('vi-VN');
                 const expiryDate = book.expiryDate ? new Date(book.expiryDate) : null;
-                const currentDate = new Date(); // Thời gian hiện tại thực tế
+                const currentDate = new Date();
                 const isExpired = expiryDate && expiryDate < currentDate;
 
+                let className = 'book-item';
+                if (book.status === 'EXPIRED') className += ' expired';
+                else if (book.status === 'UNPAID') className += ' unpaid';
+                else if (book.status === 'PAID') className += ' paid';
+
                 const bookItem = document.createElement('div');
-                bookItem.className = `book-item ${isExpired ? 'expired' : ''}`;
+                bookItem.className = className;
                 bookItem.innerHTML = `
                     <div>
-                        <h4>Thông tin mượn sách</h4>
+                        <h4>${book.title || 'Chưa có tiêu đề'}</h4>
+                        <p>Tác giả: ${book.author || 'Chưa xác định'}</p>
                         <p>Ngày mượn: ${borrowDate} | Số sách: ${book.countBooks || 'Chưa xác định'} | Trạng thái: ${book.status || 'Chưa xác định'}</p>
                         <p>Ngày hết hạn: ${expiryDate ? expiryDate.toLocaleDateString('vi-VN') : 'Chưa xác định'} ${isExpired ? '(Đã hết hạn)' : ''}</p>
                     </div>
@@ -283,32 +297,16 @@
             });
         }
 
-        // Đăng xuất
-        async function logout() {
+        // Đăng xuất (Không gọi API)
+        function logout() {
             if (!confirm('Bạn có chắc chắn muốn đăng xuất?')) return;
 
-            try {
-                const response = await fetch('http://localhost:8081/auth/logout', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
+            // Xóa token khỏi localStorage
+            localStorage.removeItem('token');
+            localStorage.removeItem('refreshToken');
 
-                if (!response.ok) {
-                    throw new Error('Đăng xuất thất bại');
-                }
-
-                localStorage.removeItem('token');
-                alert('Đã đăng xuất!');
-                window.location.href = 'login.html';
-            } catch (error) {
-                console.error('Lỗi khi đăng xuất:', error.message);
-                alert('Có lỗi xảy ra khi đăng xuất!');
-                localStorage.removeItem('token');
-                window.location.href = 'login.html';
-            }
+            alert('Đã đăng xuất thành công!');
+            window.location.href = 'login.html';
         }
 
         // Tải dữ liệu khi mở trang

@@ -144,7 +144,7 @@
             <button class="save-btn" onclick="saveReader()">Lưu thay đổi</button>
             <button class="delete-btn" onclick="deleteReader()">Xóa độc giả</button>
         </div>
-        <a href="home.html" class="back-link">Quay lại danh sách độc giả</a>
+        <a href="dashboard.html" class="back-link">Quay lại danh sách độc giả</a>
         <p id="message"></p>
     </div>
 
@@ -242,7 +242,7 @@
 
                 message.innerText = 'Cập nhật thành công!';
                 message.style.color = '#4CAF50';
-                setTimeout(() => window.location.href = 'home.html', 1500);
+                setTimeout(() => window.location.href = 'dashboard.html', 1500);
             } catch (error) {
                 console.error('Lỗi khi cập nhật độc giả:', error.message);
                 message.innerText = error.message;
@@ -268,7 +268,7 @@
 
                 document.getElementById('message').innerText = 'Xóa độc giả thành công!';
                 document.getElementById('message').style.color = '#4CAF50';
-                setTimeout(() => window.location.href = 'home.html', 1500);
+                setTimeout(() => window.location.href = 'dashboard.html', 1500);
             } catch (error) {
                 console.error('Lỗi khi xóa độc giả:', error.message);
                 document.getElementById('message').innerText = error.message;

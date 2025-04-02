@@ -42,6 +42,14 @@
             align-items: center;
         }
 
+        .book-item.expired {
+            background-color: #ffebee; /* Màu cho sách EXPIRED */
+        }
+
+        .book-item.unpaid {
+            background-color: #fff3e0; /* Màu cho sách UNPAID */
+        }
+
         .book-item h3, .fine-item h3 {
             margin: 0;
             font-size: 18px;
@@ -52,6 +60,10 @@
             margin: 5px 0 0;
             color: #777;
             font-size: 14px;
+        }
+
+        .book-item.expired p, .book-item.unpaid p {
+            color: #d32f2f; /* Màu chữ nổi bật cho EXPIRED và UNPAID */
         }
 
         .book-item .actions button {
@@ -164,15 +176,14 @@
         <h2>Danh sách biên lai phạt</h2>
         <div class="fine-list" id="fineList"></div>
         
-        <a href="home.html" class="back-link">Quay lại danh sách độc giả</a>
-        <!-- Nút "Xóa độc giả" đã bị xóa -->
+        <a href="dashboard.html" class="back-link">Quay lại danh sách độc giả</a>
     </div>
 
     <!-- Modal để tạo biên lai phạt -->
     <div class="modal" id="fineModal">
         <div class="modal-content">
             <h3>Tạo biên lai phạt</h3>
-            <input type="number" id="fineAmount" placeholder="Số tiền phạt (VNĐ)" step="0.01">
+            <input type="number" id="fineAmount" placeholder="Số tiền phạt (VNĐ)" min="30000" step="10000">
             <textarea id="note" placeholder="Ghi chú (nếu có)"></textarea>
             <button onclick="createFine()">Tạo biên lai</button>
             <button class="close" onclick="closeModal()">Đóng</button>
@@ -186,7 +197,8 @@
         const token = localStorage.getItem('token');
         const bookList = document.getElementById('bookList');
         const fineList = document.getElementById('fineList');
-
+        let selectedBookId = null;
+    
         // Lấy thông tin độc giả để hiển thị tên
         async function fetchReaderInfo() {
             try {
@@ -197,11 +209,11 @@
                         'Content-Type': 'application/json'
                     }
                 });
-
+    
                 if (!response.ok) {
                     throw new Error('Không thể lấy thông tin độc giả');
                 }
-
+    
                 const data = await response.json();
                 console.log('Dữ liệu độc giả:', data);
                 if (data.code === 1000) {
@@ -213,7 +225,7 @@
                 document.getElementById('readerName').innerText = `ID ${readerId}`;
             }
         }
-
+    
         // Lấy danh sách sách mượn
         async function fetchBooks() {
             try {
@@ -224,11 +236,11 @@
                         'Content-Type': 'application/json'
                     }
                 });
-
+    
                 if (!response.ok) {
                     throw new Error('Không thể lấy danh sách sách mượn');
                 }
-
+    
                 const data = await response.json();
                 console.log('Dữ liệu sách mượn:', data);
                 if (data.code === 1000) {
@@ -241,38 +253,42 @@
                 bookList.innerHTML = '<p>Có lỗi xảy ra khi tải danh sách sách mượn!</p>';
             }
         }
-
+    
         function displayBooks(books) {
             if (!books || books.length === 0) {
                 bookList.innerHTML = '<p>Độc giả này chưa mượn sách nào.</p>';
                 return;
             }
-
+    
             bookList.innerHTML = '';
             books.forEach(book => {
                 const borrowDate = new Date(book.borrowDate).toLocaleDateString('vi-VN');
                 const expiryDate = book.expiryDate ? new Date(book.expiryDate) : null;
                 const currentDate = new Date();
                 const isExpired = expiryDate && expiryDate < currentDate;
-
-                console.log(`Sách: ${book.borrowDate}, Hết hạn: ${book.expiryDate}, Hiện tại: ${currentDate}, Hết hạn?: ${isExpired}`);
-
+                const status = book.status || 'Chưa xác định';
+                const isUnpaid = status === 'UNPAID';
+                const isExpiredStatus = status === 'EXPIRED';
+    
+                console.log(`Sách: ${book.borrowDate}, Hết hạn: ${book.expiryDate}, Hiện tại: ${currentDate}, Hết hạn?: ${isExpired}, Status: ${status}`);
+    
                 const bookItem = document.createElement('div');
-                bookItem.className = 'book-item';
+                bookItem.className = `book-item ${isExpiredStatus ? 'expired' : ''} ${isUnpaid ? 'unpaid' : ''}`;
                 bookItem.innerHTML = `
                     <div>
-                        <h3>Thông tin mượn sách</h3>
-                        <p>Ngày mượn: ${borrowDate} | Số sách: ${book.countBooks || 'Chưa xác định'} | Trạng thái: ${book.status || 'Chưa xác định'}</p>
+                        <h3>${book.title || 'Tựa sách không xác định'}</h3>
+                        <p>Tác giả: ${book.author || 'Không xác định'}</p>
+                        <p>Ngày mượn: ${borrowDate} | Số sách: ${book.countBooks || 'Chưa xác định'} | Trạng thái: ${status}</p>
                         <p>Ngày hết hạn: ${expiryDate ? expiryDate.toLocaleDateString('vi-VN') : 'Chưa xác định'} ${isExpired ? '(Đã hết hạn)' : ''}</p>
                     </div>
                     <div class="actions">
-                        ${isExpired ? '<button onclick="openFineModal()">+</button>' : ''}
+                        ${isExpiredStatus ? `<button onclick="openFineModal('${book.id}', '${book.title}')">+</button>` : ''}
                     </div>
                 `;
                 bookList.appendChild(bookItem);
             });
         }
-
+    
         // Lấy danh sách biên lai phạt
         async function fetchFines() {
             try {
@@ -283,11 +299,11 @@
                         'Content-Type': 'application/json'
                     }
                 });
-
+    
                 if (!response.ok) {
                     throw new Error('Không thể lấy danh sách biên lai phạt');
                 }
-
+    
                 const data = await response.json();
                 console.log('Dữ liệu biên lai phạt:', data);
                 if (data.code === 1000) {
@@ -300,13 +316,13 @@
                 fineList.innerHTML = '<p>Có lỗi xảy ra khi tải danh sách biên lai phạt!</p>';
             }
         }
-
+    
         function displayFines(fines) {
             if (!fines || fines.length === 0) {
                 fineList.innerHTML = '<p>Chưa có biên lai phạt nào.</p>';
                 return;
             }
-
+    
             fineList.innerHTML = '';
             fines.forEach((fine, index) => {
                 const fineItem = document.createElement('div');
@@ -321,72 +337,87 @@
                 fineList.appendChild(fineItem);
             });
         }
-
+    
         // Hiện modal tạo biên lai phạt
-        function openFineModal() {
+        function openFineModal(bookId, bookTitle) {
+            selectedBookId = bookId;
             document.getElementById('fineModal').style.display = 'flex';
+            document.querySelector('#fineModal h3').innerText = `Tạo biên lai phạt cho "${bookTitle}"`;
         }
-
+    
         // Đóng modal
         function closeModal() {
             document.getElementById('fineModal').style.display = 'none';
             resetFineForm();
         }
-
+    
         // Tạo biên lai phạt
         async function createFine() {
-            const fineAmount = document.getElementById('fineAmount').value;
-            const note = document.getElementById('note').value;
-            const message = document.getElementById('fineMessage');
+    const fineAmount = document.getElementById('fineAmount').value;
+    const note = document.getElementById('note').value;
+    const message = document.getElementById('fineMessage');
 
-            if (!fineAmount) {
-                message.innerText = 'Vui lòng điền số tiền phạt!';
-                return;
-            }
+    // Kiểm tra giá trị nhập vào
+    if (!fineAmount) {
+        message.innerText = 'Vui lòng điền số tiền phạt!';
+        return;
+    }
 
-            const fineData = {
-                amount: parseFloat(fineAmount),
-                note: note || null
-            };
+    const amount = parseFloat(fineAmount); // Chuyển sang số
+    if (isNaN(amount) || amount <= 10000 || !Number.isInteger(amount)) {
+        message.innerText = 'Số tiền phạt phải là số nguyên dương lớn hơn 10,000 VNĐ!';
+        return;
+    }
 
-            try {
-                const response = await fetch(`http://localhost:8081/User/FineReceipt/${readerId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(fineData)
-                });
+    if (!selectedBookId) {
+        message.innerText = 'Không tìm thấy ID sách!';
+        return;
+    }
 
-                if (!response.ok) {
-                    throw new Error('Không thể tạo biên lai phạt');
-                }
+    const fineData = {
+        bookId: selectedBookId,
+        amount: amount, // Sử dụng giá trị đã kiểm tra
+        status: "PENDING",
+        note: note || "Đơn hàng đang chờ xử lý"
+    };
 
-                message.style.color = '#4CAF50';
-                message.innerText = 'Tạo biên lai phạt thành công!';
-                setTimeout(() => {
-                    closeModal();
-                    fetchFines();
-                }, 1500);
-            } catch (error) {
-                console.error('Lỗi khi tạo biên lai:', error);
-                message.innerText = 'Có lỗi xảy ra khi tạo biên lai!';
-            }
+    try {
+        const response = await fetch(`http://localhost:8081/User/FineReceipt/${readerId}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(fineData)
+        });
+
+        if (!response.ok) {
+            throw new Error('Không thể tạo biên lai phạt');
         }
 
+        message.style.color = '#4CAF50';
+        message.innerText = 'Tạo biên lai phạt thành công!';
+        await Promise.all([fetchFines(), fetchBooks()]);
+        setTimeout(() => {
+            closeModal();
+        }, 1500);
+    } catch (error) {
+        console.error('Lỗi khi tạo biên lai:', error);
+        message.innerText = 'Có lỗi xảy ra khi tạo biên lai!';
+    }
+}
         // Reset form
         function resetFineForm() {
             document.getElementById('fineAmount').value = '';
             document.getElementById('note').value = '';
             document.getElementById('fineMessage').innerText = '';
         }
-
+    
         // Tải dữ liệu khi mở trang
         window.onload = () => {
             if (!readerId) {
                 alert('Không tìm thấy ID độc giả!');
-                window.location.href = 'home.html';
+                window.location.href = 'dashboard.html';
                 return;
             }
             fetchReaderInfo();
