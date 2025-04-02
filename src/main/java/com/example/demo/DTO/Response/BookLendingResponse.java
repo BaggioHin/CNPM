@@ -12,6 +12,9 @@ import java.util.Date;
 @NoArgsConstructor
 @Builder
 public class BookLendingResponse {
+    private Integer id;
+    private String title;
+    private String author;
     private Date borrowDate;
     private Date expiryDate;
     private String status;

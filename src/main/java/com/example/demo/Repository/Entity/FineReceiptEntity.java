@@ -21,4 +21,7 @@ public class FineReceiptEntity {
     @ManyToOne
     @JoinColumn(name = "reader_id")
     private ReaderEntity reader;
+
+    @OneToOne(mappedBy = "fineReceipt")
+    private BookLendingEntity bookLending;
 }

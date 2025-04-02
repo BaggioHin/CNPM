@@ -101,6 +101,9 @@ public class ReaderService {
         if (accountRepository.findByUsername(readerRequest.getUsername()).isPresent()) {
             throw new AppException(ErrorCode.USER_EXISTED);
         }
+        if(accountRepository.existsByUsername(readerRequest.getEmail())) {
+            throw new AppException(ErrorCode.EMAIL_EXISTED);
+        }
 
         // Mã hóa password
         String encodedPassword = passwordEncoder.encode(readerRequest.getPassword());
@@ -137,6 +140,12 @@ public class ReaderService {
             throw new AppException(ErrorCode.USER_NOT_EXISTED);
         };
         ReaderEntity readerEntity = readerRepository.findById(id).get();
+        if(accountRepository.findByUsername(reader.getUsername()).isPresent()) {
+            throw new AppException(ErrorCode.USER_EXISTED);
+        }
+        if(accountRepository.existsByEmail(reader.getEmail())) {
+            throw new AppException(ErrorCode.EMAIL_EXISTED);
+        }
         readerEntity = readerMapper.toEntity(reader, readerEntity);
         return readerMapper.toResponse(readerRepository.save(readerEntity));
     }

@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class FineReceiptRequest {
+    private Integer bookId;
     private Double amount;
     private String status="PENDING";
     private String note;

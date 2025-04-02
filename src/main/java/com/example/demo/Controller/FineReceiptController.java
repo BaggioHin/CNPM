@@ -17,7 +17,8 @@ public class FineReceiptController {
     FineReceiptService fineReceiptService;
 
     @PostMapping("/FineReceipt/{id}")
-    public ApiResponse<FineReceiptResponse> createFineReceipt(@RequestBody  FineReceiptRequest request,@PathVariable Integer id) {
+    public ApiResponse<FineReceiptResponse> createFineReceipt(@RequestBody  FineReceiptRequest request,
+                                                              @PathVariable Integer id) {
         return ApiResponse.<FineReceiptResponse>builder()
                 .result(fineReceiptService.createFineReceipt(request,id))
                 .build();

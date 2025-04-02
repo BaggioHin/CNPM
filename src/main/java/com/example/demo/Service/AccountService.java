@@ -1,7 +1,8 @@
 package com.example.demo.Service;
 
 import com.example.demo.DTO.Request.ChangePasswordRequest;
-import com.example.demo.DTO.Response.ApiResponse;
+import com.example.demo.Exception.AppException;
+import com.example.demo.Exception.ErrorCode;
 import com.example.demo.Repository.Entity.AccountEntity;
 import com.example.demo.Repository.Entity.ReaderEntity;
 import com.example.demo.Repository.IRepository.AccountRepository;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class AccountService {
@@ -33,6 +35,10 @@ public class AccountService {
 
     @PreAuthorize("isAuthenticated()")
     public String  changePassword(@RequestBody ChangePasswordRequest changePasswordRequest) {
+        if (Objects.equals(changePasswordRequest.getNewPassword(), changePasswordRequest.getOldPassword())) {
+            throw new AppException(ErrorCode.INVALID_NEW_PASSWORD);
+        }
+
         var context = SecurityContextHolder.getContext();
         String username = context.getAuthentication().getName();
         AccountEntity account = accountRepository.findByUsername(username)
@@ -44,6 +50,4 @@ public class AccountService {
         accountRepository.save(account);
         return account.getPassword();
     }
-
-
 }

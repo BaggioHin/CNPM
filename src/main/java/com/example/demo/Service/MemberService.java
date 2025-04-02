@@ -51,6 +51,7 @@ public class MemberService {
 
         for (MemberEntity member : reader.getMemberEntities()) {
             if (member.getExpiryTime() != null
+//isBefore()
                     && member.getExpiryTime().toInstant().isAfter(Instant.now())
                     && "Membership".equals(member.getStatus())) {
                 throw new AppException(ErrorCode.ALREADY_ACTIVE_MEMBER);

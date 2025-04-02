@@ -16,6 +16,8 @@ public class BookLendingEntity {
     @Id
     @GeneratedValue
     private Integer id;
+    private String title;
+    private String author;
     private Date borrowDate;
     private Date expiryDate;
     private String status;
@@ -24,4 +26,8 @@ public class BookLendingEntity {
     @ManyToOne
     @JoinColumn(name = "reader_id")
     private ReaderEntity reader;
+
+    @OneToOne
+    @JoinColumn(name = "fineceipt_id")
+    private FineReceiptEntity fineReceipt;
 }

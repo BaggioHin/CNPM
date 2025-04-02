@@ -15,7 +15,9 @@ public enum ErrorCode {
     UNAUTHENTICATED(1006, "Unauthenticated", HttpStatus.UNAUTHORIZED),
     UNAUTHORIZED(1007, "You do not have permission", HttpStatus.FORBIDDEN),
     INVALID_DOB(1008, "Your age must be at least {min}", HttpStatus.BAD_REQUEST),
-    ALREADY_ACTIVE_MEMBER(1009, "You already have an active membership", HttpStatus.BAD_REQUEST);
+    ALREADY_ACTIVE_MEMBER(1009, "You already have an active membership", HttpStatus.BAD_REQUEST),
+    EMAIL_EXISTED(1010, "Email already existed" , HttpStatus.BAD_REQUEST ),
+    INVALID_NEW_PASSWORD(1011,"Invalid new password" , HttpStatus.BAD_REQUEST );
 
 
     ErrorCode(int code, String message, HttpStatusCode statusCode) {
