@@ -16,9 +16,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.time.ZoneId;
+import java.util.*;
+import java.time.LocalDateTime;
 
 @Slf4j
 @Service
@@ -34,6 +34,8 @@ public class ReaderService {
 
     @Autowired
     PasswordEncoder passwordEncoder;
+    @Autowired
+    private MemberRepository memberRepository;
 
     @PreAuthorize("hasAuthority('SCOPE_ADMIN')")
     public List<ReaderResponse> getAllReader() {
@@ -80,12 +82,30 @@ public class ReaderService {
     @PreAuthorize("hasAuthority('SCOPE_USER') and isAuthenticated()")
     public ReaderResponse getReaderById() {
         var context = SecurityContextHolder.getContext();
-        String username =  context.getAuthentication().getName();
-        AccountEntity accountEntity = accountRepository.findByUsername(username).get();
+        String username = context.getAuthentication().getName();
+        AccountEntity accountEntity = accountRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("User not found"));
 
-        ReaderEntity readerEntity = readerRepository.findById(accountEntity.getId()).get();
-        return readerMapper.toResponse(readerEntity);
+        ReaderEntity readerEntity = readerRepository.findById(accountEntity.getId()).orElseThrow(() -> new RuntimeException("Reader not found"));
+
+        // Lấy status của biên lai có expiryTime muộn nhất
+        String latestStatus = readerEntity.getMemberEntities().stream()
+                .max(Comparator.comparing(MemberEntity::getExpiryTime)) // Lấy member có expiryTime lớn nhất
+                .map(MemberEntity::getStatus) // Lấy status
+                .orElse("NonMembership");
+
+
+        return ReaderResponse.builder()
+                .id(readerEntity.getId())
+                .name(readerEntity.getName())
+                .phone(readerEntity.getPhone())
+                .address(readerEntity.getAddress())
+                .username(username)
+                .email(accountEntity.getEmail())
+                .note(accountEntity.getNote())
+                .status(latestStatus)
+                .build();
     }
+
 
     @PreAuthorize("hasAuthority('SCOPE_ADMIN')")
     public ReaderResponse getReaderByName(String name) {
@@ -136,18 +156,62 @@ public class ReaderService {
 
     @Transactional
     public ReaderResponse updateReader(Integer id, ReaderRequest reader) {
-        if(readerRepository.findById(id).isEmpty()) {
-            throw new AppException(ErrorCode.USER_NOT_EXISTED);
-        };
-        ReaderEntity readerEntity = readerRepository.findById(id).get();
-        if(accountRepository.findByUsername(reader.getUsername()).isPresent()) {
-            throw new AppException(ErrorCode.USER_EXISTED);
+        System.out.println("here1");
+        ReaderEntity readerEntity = readerRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        AccountEntity accountEntity = accountRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        if (reader.getEmail() != null && !reader.getEmail().trim().isEmpty()
+                && !reader.getEmail().equals(accountEntity.getEmail())) {
+            if (accountRepository.existsByEmail(reader.getEmail())) {
+                throw new AppException(ErrorCode.EMAIL_EXISTED);
+            }
+            accountEntity.setEmail(reader.getEmail());
+            accountRepository.save(accountEntity);
+            System.out.println("here2");
         }
-        if(accountRepository.existsByEmail(reader.getEmail())) {
-            throw new AppException(ErrorCode.EMAIL_EXISTED);
-        }
+
+        List<MemberEntity> existingMembers = readerEntity.getMemberEntities();
         readerEntity = readerMapper.toEntity(reader, readerEntity);
-        return readerMapper.toResponse(readerRepository.save(readerEntity));
+        readerEntity.setMemberEntities(existingMembers != null ? existingMembers : new ArrayList<>());
+        readerRepository.save(readerEntity);
+
+        Date now = Date.from(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant());
+        if (Objects.equals(reader.getStatus(), "Membership")) {
+            System.out.println("here4");
+            Optional<MemberEntity> latestMember = readerEntity.getMemberEntities().stream()
+                    .max(Comparator.comparing(MemberEntity::getExpiryTime));
+
+            if (latestMember.isPresent() && latestMember.get().getExpiryTime().after(now)) {
+                throw new AppException(ErrorCode.ALREADY_ACTIVE_MEMBER);
+            }
+
+            if (reader.getExpireDate() == null || reader.getMembershipDate() == null) {
+                throw new AppException(ErrorCode.INVALID_DATE);
+            }
+            if (reader.getExpireDate().before(reader.getMembershipDate())) {
+                throw new AppException(ErrorCode.INVALID_DATE_RANGE);
+            }
+            System.out.println("here3");
+            MemberEntity memberEntity = new MemberEntity();
+            memberEntity.setVersion(0);
+            memberEntity.setStatus("Membership");
+            memberEntity.setExpiryTime(reader.getExpireDate());
+            memberEntity.setMembershipDate(reader.getMembershipDate());
+            memberEntity.setReader(readerEntity);
+
+            System.out.println("Before saving MemberEntity: " + memberEntity);
+            MemberEntity savedEntity = memberRepository.saveAndFlush(memberEntity);
+            System.out.println("Saved MemberEntity ID: " + savedEntity.getId() + "**********************");
+
+            if (!readerEntity.getMemberEntities().contains(savedEntity)) {
+                readerEntity.getMemberEntities().add(savedEntity);
+            }
+            readerRepository.saveAndFlush(readerEntity);
+        }
+
+        return readerMapper.toResponse(readerEntity);
     }
 
     @Transactional

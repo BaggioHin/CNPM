@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 @Component
 public interface FineReceiptMapper {
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @Mapping(source = "id",target = "id")
     FineReceiptResponse toResponse(FineReceiptEntity fineReceipt);
 
     FineReceiptEntity toEntity(FineReceiptRequest fineReceiptRequest);

@@ -16,6 +16,10 @@ public class MemberEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
+
+    @Version
+    private Integer version; // Trường version để quản lý Optimistic Locking
+
     private Date membershipDate;
     private Date expiryTime;
     private Double membershipFee;

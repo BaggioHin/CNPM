@@ -30,4 +30,18 @@ public class FineReceiptController {
                 .result(fineReceiptService.getFineReceipt(id))
                 .build();
     }
+
+    @GetMapping("/fineReceipt/{id}")
+    public ApiResponse<FineReceiptResponse> getFineReceiptById(@PathVariable Integer id) {
+        return ApiResponse.<FineReceiptResponse>builder()
+                .result(fineReceiptService.getById(id))
+                .build();
+    }
+
+    @GetMapping("/pay/{id}")
+    public ApiResponse<FineReceiptResponse> payFineReceipt(@PathVariable Integer id) {
+        return ApiResponse.<FineReceiptResponse>builder()
+                .result(fineReceiptService.payFineReceipt(id))
+                .build();
+    }
 }

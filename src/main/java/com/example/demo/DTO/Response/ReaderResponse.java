@@ -14,5 +14,8 @@ public class ReaderResponse {
     private String name;
     private String phone;
     private String address;
+    private String email;
+    private String username;
+    private String note;
     private String status;
 }

@@ -50,4 +50,25 @@ public class FineReceiptService {
         }
         return fineReceiptResponses;
     }
+
+    public FineReceiptResponse getById(Integer id) {
+        FineReceiptEntity fineReceiptEntity = fineReceiptRepository.findById(id).get();
+        return FineReceiptResponse.builder()
+                .amount(fineReceiptEntity.getAmount())
+                .note(fineReceiptEntity.getNote())
+                .status(fineReceiptEntity.getStatus())
+                .build();
+    }
+
+    public FineReceiptResponse payFineReceipt(Integer id){
+        FineReceiptEntity fineReceiptEntity = fineReceiptRepository.findById(id).get();
+        fineReceiptEntity.setStatus("PAID");
+        fineReceiptRepository.save(fineReceiptEntity);
+        return FineReceiptResponse.builder()
+                .id(fineReceiptEntity.getId())
+                .amount(fineReceiptEntity.getAmount())
+                .note(fineReceiptEntity.getNote())
+                .status("PAID")
+                .build();
+    }
 }

@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class FineReceiptResponse {
+    private Integer id;
     private Double amount;
     private String status;
     private String note;
