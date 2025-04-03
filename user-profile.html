@@ -235,9 +235,9 @@
                 <p><strong>Email:</strong> ${userData.email || 'Chưa có'}</p>
                 <p><strong>Tên đăng nhập:</strong> ${userData.username || 'Chưa có'}</p>
                 <p><strong>Ghi chú:</strong> ${userData.note || 'Không có'}</p>
-                <p><strong>Trạng thái hội viên:</strong> ${userData.membershipStatus === 'approved' ? 'Hội viên' : userData.membershipStatus === 'pending' ? 'Chờ phê duyệt' : 'Không phải hội viên'}</p>
+                <p><strong>Trạng thái hội viên:</strong> ${userData.status === 'Membership' ? 'Hội viên' : 'Chưa là hội viên'}</p>                
                 <button class="change-password" onclick="openPasswordModal()">Đổi mật khẩu</button>
-                <button class="register-membership" onclick="openMembershipModal()">Đăng ký hội viên</button>
+            ${userData.status !== 'Membership' ? '<button class="register-membership" onclick="openMembershipModal()">Đăng ký hội viên</button>' : ''}
             `;
         }
 
@@ -300,11 +300,8 @@
 
         // Đăng ký hội viên
         function openMembershipModal() {
-            if (userData && userData.membershipStatus === 'approved') {
-                alert('Bạn đã là hội viên!');
-                return;
-            } else if (userData && userData.membershipStatus === 'pending') {
-                alert('Yêu cầu đăng ký hội viên của bạn đang chờ phê duyệt!');
+            if (userData && userData.status === 'Membership') {
+                 alert('Bạn đã là hội viên!');
                 return;
             }
             document.getElementById('membershipModal').style.display = 'flex';

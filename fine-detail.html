@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chi tiết biên lai phạt</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            padding: 20px;
+            max-width: 800px;
+            margin: 20px auto;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        p {
+            color: #777;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+
+        .pay-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: #fff;
+            transition: background-color 0.3s ease;
+        }
+
+        .pay-button:hover {
+            background-color: #45a049;
+        }
+
+        .pay-button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Chi tiết biên lai phạt</h2>
+        <div id="fineDetail">
+            <p><strong>Tên biên lai:</strong> <span id="fineName"></span></p>
+            <p><strong>Số tiền phạt:</strong> <span id="fineAmount"></span></p>
+            <p><strong>Trạng thái:</strong> <span id="fineStatus"></span></p>
+            <p><strong>Ghi chú:</strong> <span id="fineNote"></span></p>
+        </div>
+        <button class="pay-button" id="payButton" onclick="payFine()">Thanh toán</button>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        const urlParams = new URLSearchParams(window.location.search);
+        const fineId = urlParams.get('id');
+
+        async function fetchFineDetail() {
+            try {
+                if (!token) {
+                    throw new Error('Không tìm thấy token. Vui lòng đăng nhập lại.');
+                }
+
+                console.log('Fetching fine detail for ID:', fineId);
+                const response = await fetch(`http://localhost:8081/User/fineReceipt/${fineId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Không thể lấy thông tin biên lai: ${response.status} - ${errorText}`);
+                }
+
+                const data = await response.json();
+                console.log('Dữ liệu biên lai:', data);
+                if (data.code === 1000) {
+                    displayFineDetail(data.result);
+                } else {
+                    throw new Error('Mã phản hồi không hợp lệ: ' + data.code);
+                }
+            } catch (error) {
+                console.error('Lỗi khi lấy thông tin biên lai:', error.message);
+                document.getElementById('fineDetail').innerHTML = `<p>${error.message}</p>`;
+            }
+        }
+
+        function displayFineDetail(fine) {
+            document.getElementById('fineName').innerText = `Biên lai phạt #${fineId}`;
+            document.getElementById('fineAmount').innerText = fine.amount !== null ? fine.amount.toLocaleString('vi-VN') + ' VNĐ' : 'Chưa xác định';
+            document.getElementById('fineStatus').innerText = fine.status || 'Chưa xác định';
+            document.getElementById('fineNote').innerText = fine.note || 'Không có';
+
+            const payButton = document.getElementById('payButton');
+            if (fine.status !== 'PENDING') {
+                payButton.disabled = true;
+                payButton.innerText = fine.status === 'PAID' ? 'Đã thanh toán' : 'Không thể thanh toán';
+            }
+        }
+
+        async function payFine() {
+    if (!confirm('Bạn có chắc chắn muốn thanh toán biên lai này?')) return;
+
+    try {
+        const response = await fetch(`http://localhost:8081/User/pay/${fineId}`, {
+            method: 'GET', // Thay đổi từ POST sang GET
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Không thể thanh toán: ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (data.code === 1000) {
+            alert('Thanh toán thành công!');
+            fetchFineDetail(); // Cập nhật lại chi tiết biên lai
+        } else {
+            throw new Error('Mã phản hồi không hợp lệ: ' + data.code);
+        }
+    } catch (error) {
+        console.error('Lỗi khi thanh toán:', error.message);
+        alert('Thanh toán thất bại: ' + error.message);
+    }
+}
+
+        window.onload = fetchFineDetail;
+    </script>
+</body>
+</html>

@@ -273,8 +273,13 @@
 
         async function updateStatus(id, newStatus, event) {
             event.stopPropagation();
+
+            // Thêm xác nhận trước khi cập nhật trạng thái
+            const actionText = newStatus === 'Membership' ? 'duyệt' : 'từ chối';
+            if (!confirm(`Bạn có chắc chắn muốn ${actionText} yêu cầu này không?`)) return;
+
             try {
-                console.log(`Gửi request PUT tới: http://localhost:8081/member/update/${id}`);
+                console.log(`Gửi request POST tới: http://localhost:8081/member/update/${id}`);
                 console.log('Body:', JSON.stringify({ status: newStatus }));
                 const response = await fetch(`http://localhost:8081/member/update/${id}`, {
                     method: 'POST',

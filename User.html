@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="vi">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -88,16 +87,20 @@
             align-items: center;
         }
 
+        .fine-item {
+            cursor: pointer;
+        }
+
         .book-item.expired {
-            background-color: #ffebee; /* Màu cho EXPIRED */
+            background-color: #ffebee;
         }
 
         .book-item.unpaid {
-            background-color: #ffebee; /* Màu cho UNPAID */
+            background-color: #ffebee;
         }
 
         .book-item.paid {
-            background-color: #fff; /* Màu cho PAID */
+            background-color: #fff;
         }
 
         .book-item h4, .fine-item h4 {
@@ -113,11 +116,10 @@
         }
 
         .book-item.expired p, .book-item.unpaid p {
-            color: #d32f2f; /* Màu chữ cho EXPIRED và UNPAID */
+            color: #d32f2f;
         }
     </style>
 </head>
-
 <body>
     <div class="header-bar">
         <h2>Chào mừng, <span id="userName">Người dùng</span></h2>
@@ -141,9 +143,8 @@
 
     <script>
         const token = localStorage.getItem('token');
-        let readerId = null; // Sẽ lấy từ API hoặc cấu hình sau
+        let readerId = null;
 
-        // Lấy thông tin người dùng
         async function fetchUserInfo() {
             try {
                 if (!token) {
@@ -166,7 +167,7 @@
                 console.log('Dữ liệu người dùng:', data);
                 if (data.code === 1000) {
                     document.getElementById('userName').innerText = data.result.name || 'Người dùng';
-                    readerId = data.result.id; // Giả định backend trả thêm id, nếu không thì cần API khác
+                    readerId = data.result.id;
                     fetchBooks();
                     fetchFines();
                 } else {
@@ -178,7 +179,6 @@
             }
         }
 
-        // Lấy danh sách sách mượn
         async function fetchBooks() {
             try {
                 if (!readerId) {
@@ -243,7 +243,6 @@
             });
         }
 
-        // Lấy danh sách biên lai phạt
         async function fetchFines() {
             try {
                 if (!readerId) {
@@ -284,34 +283,31 @@
 
             fineList.innerHTML = '';
             fines.forEach((fine, index) => {
+                const fineId = fine.id !== undefined ? fine.id : index; // Dùng id nếu có, nếu không thì dùng index
                 const fineItem = document.createElement('div');
                 fineItem.className = 'fine-item';
                 fineItem.innerHTML = `
                     <div>
-                        <h4>Biên lai phạt #${index + 1}</h4>
-                        <p>Số tiền phạt: ${fine.amount !== null ? fine.amount + ' VNĐ' : 'Chưa xác định'} | Trạng thái: ${fine.status || 'Chưa xác định'}</p>
-                        <p>Ghi chú: ${fine.note || 'Không có'}</p>
+                        <h4>Biên lai phạt #${fineId}</h4>
+                        <p>Trạng thái: ${fine.status || 'Chưa xác định'}</p>
                     </div>
                 `;
+                fineItem.onclick = () => {
+                    window.location.href = `fine-detail.html?id=${fineId}`; // Truyền fineId qua URL
+                };
                 fineList.appendChild(fineItem);
             });
         }
 
-        // Đăng xuất (Không gọi API)
         function logout() {
             if (!confirm('Bạn có chắc chắn muốn đăng xuất?')) return;
-
-            // Xóa token khỏi localStorage
             localStorage.removeItem('token');
             localStorage.removeItem('refreshToken');
-
             alert('Đã đăng xuất thành công!');
             window.location.href = 'login.html';
         }
 
-        // Tải dữ liệu khi mở trang
         window.onload = fetchUserInfo;
     </script>
 </body>
-
 </html>

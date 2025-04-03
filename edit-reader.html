@@ -38,7 +38,8 @@
         }
 
         .form-group input,
-        .form-group textarea {
+        .form-group textarea,
+        .form-group select {
             width: 100%;
             padding: 10px;
             border: 1px solid #ddd;
@@ -53,9 +54,14 @@
         }
 
         .form-group input:focus,
-        .form-group textarea:focus {
+        .form-group textarea:focus,
+        .form-group select:focus {
             border-color: #4CAF50;
             outline: none;
+        }
+
+        #membershipDurationGroup {
+            display: none; /* Ẩn mặc định */
         }
 
         .buttons {
@@ -129,12 +135,19 @@
             <input type="email" id="editEmail" placeholder="Email">
         </div>
         <div class="form-group">
-            <label for="editUsername">Tên đăng nhập</label>
-            <input type="text" id="editUsername" placeholder="Tên đăng nhập">
+            <label for="editMembership">Trạng thái hội viên</label>
+            <select id="editMembership" onchange="toggleMembershipDuration()">
+                <option value="Membership">Membership</option>
+                <option value="NonMembership">NonMembership</option>
+            </select>
         </div>
-        <div class="form-group">
-            <label for="editPassword">Mật khẩu</label>
-            <input type="password" id="editPassword" placeholder="Mật khẩu">
+        <div class="form-group" id="membershipDurationGroup">
+            <label for="membershipDuration">Thời gian hội viên</label>
+            <select id="membershipDuration">
+                <option value="30">1 tháng (30 ngày)</option>
+                <option value="90">3 tháng (90 ngày)</option>
+                <option value="180">6 tháng (180 ngày)</option>
+            </select>
         </div>
         <div class="form-group">
             <label for="editNote">Ghi chú</label>
@@ -183,9 +196,18 @@
                         document.getElementById('editPhone').value = reader.phone || '';
                         document.getElementById('editAddress').value = reader.address || '';
                         document.getElementById('editEmail').value = reader.email || '';
-                        document.getElementById('editUsername').value = reader.username || '';
-                        document.getElementById('editPassword').value = reader.password || '';
+                        document.getElementById('editMembership').value = reader.membership || 'NonMembership';
                         document.getElementById('editNote').value = reader.note || '';
+                        toggleMembershipDuration(); // Cập nhật hiển thị trường thời gian
+                        if (reader.membership === 'Membership' && reader.expireDate) {
+                            const membershipDate = new Date(reader.membershipDate);
+                            const expireDate = new Date(reader.expireDate);
+                            const duration = Math.ceil((expireDate - membershipDate) / (1000 * 60 * 60 * 24));
+                            // Chọn giá trị gần nhất trong các mốc
+                            document.getElementById('membershipDuration').value = 
+                                duration <= 30 ? '30' : 
+                                duration <= 90 ? '90' : '180';
+                        }
                     } else {
                         throw new Error('Không tìm thấy độc giả với ID: ' + readerId);
                     }
@@ -199,13 +221,19 @@
             }
         }
 
+        function toggleMembershipDuration() {
+            const membership = document.getElementById('editMembership').value;
+            const durationGroup = document.getElementById('membershipDurationGroup');
+            durationGroup.style.display = membership === 'Membership' ? 'block' : 'none';
+        }
+
         async function saveReader() {
             const name = document.getElementById('editName').value;
             const phone = document.getElementById('editPhone').value;
             const address = document.getElementById('editAddress').value;
             const email = document.getElementById('editEmail').value;
-            const username = document.getElementById('editUsername').value;
-            const password = document.getElementById('editPassword').value;
+            const membership = document.getElementById('editMembership').value;
+            const membershipDuration = document.getElementById('membershipDuration').value;
             const note = document.getElementById('editNote').value;
             const message = document.getElementById('message');
 
@@ -221,10 +249,17 @@
                 phone,
                 address,
                 email: email || null,
-                username: username || null,
-                password: password || null,
+                membership,
                 note: note || null
             };
+
+            if (membership === 'Membership') {
+                const membershipDate = new Date(); // Ngày hiện tại
+                const expireDate = new Date(membershipDate);
+                expireDate.setDate(membershipDate.getDate() + parseInt(membershipDuration));
+                updatedReader.membershipDate = membershipDate.toISOString().split('T')[0]; // Định dạng YYYY-MM-DD
+                updatedReader.expireDate = expireDate.toISOString().split('T')[0]; // Định dạng YYYY-MM-DD
+            }
 
             try {
                 const response = await fetch(`http://localhost:8081/reader/${readerId}`, {
@@ -242,16 +277,28 @@
 
                 message.innerText = 'Cập nhật thành công!';
                 message.style.color = '#4CAF50';
-                setTimeout(() => window.location.href = 'dashboard.html', 1500);
+                setTimeout(() => window.location.href = 'dashboard.html', 100000);
             } catch (error) {
                 console.error('Lỗi khi cập nhật độc giả:', error.message);
                 message.innerText = error.message;
                 message.style.color = '#e53935';
             }
+            console.log('Request PUT:', {
+    url: `http://localhost:8081/reader/${readerId}`,
+    method: 'PUT',
+    headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(updatedReader)
+});
         }
 
         async function deleteReader() {
             if (!confirm('Bạn có chắc chắn muốn xóa độc giả này?')) return;
+
+            // Xác nhận lần hai
+            if (!confirm('Hành động này không thể hoàn tác. Bạn có thực sự muốn xóa?')) return;
 
             try {
                 const response = await fetch(`http://localhost:8081/reader/delete/${readerId}`, {
